@@ -1,14 +1,14 @@
 <?php
 /**
  * @package Simple-Permissions
- * @version 1.0.1
+ * @version 1.0.2
  */
 /*
 Plugin Name: Simple Permissions
 Plugin URI: http://wordpress.org/plugins/simple-permissions/
 Description: Create simple permission groups for reading or editing posts.
 Author: Michael George
-Version: 1.0.1
+Version: 1.0.2
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -123,12 +123,9 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 		//Get permissions for post
 		//Returns array (group/user id int, group/user name str, permission str)
 		function spGetPermissions( $post_id ) {
-			//echo "In spGetPermissions with post id: $post_id.<br>";
 			$devOptions = $this->spGetAdminOptions();
 			$readGroups = get_post_meta( $post_id, 'simplePermissions_readGroupIDs' );
 			$writeGroups = get_post_meta( $post_id, 'simplePermissions_writeGroupIDs' );
-			//print_r( $readGroups );
-			//print_r( get_post_meta( $post_id, 'simplePermissions_readGroupIDs', true ) );
 
 			$returnValue = array();
 
@@ -149,7 +146,7 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 				}
 			}
 			if ( ! count( $returnValue ) > 0 ) {
-				$returnValue[] = array( "id" => 0, "name" => "public", "permission" => "read" );
+				$returnValue[] = array( "id" => 0, "name" => "public", "permission" => "write" );
 			}
 
 			return $returnValue;
@@ -162,10 +159,9 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 		//						[1] User ID
 		//						[2] Associated object ID
 		function spUserCanDo( $allcaps, $cap, $args ) {
-			//echo "<!-- in spUserCanDo -->\r";
-			$protectedOperations = array( 'delete_page'
+			$protectedOperations = array(
+										'delete_page'
 										,'delete_post'
-										,'edit_comment'
 										,'edit_page'
 										,'edit_post'
 										,'read_post'
@@ -189,26 +185,30 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 			}
 
 			//set the cap to false until we prove it's true
-			unset( $allcaps[$cap[0]] );
-
-			$permissions = $this->spGetPermissions( $args[2] );
-			$devOptions = $this->spGetAdminOptions();
-			$groupPermissions = array();
-			foreach ( $permissions as $permission ) {
-				$groupPermissions[] = $permission;
+			foreach ( $cap as $thiscap ) {
+				unset( $allcaps[$thiscap] );
 			}
+
+			$groupPermissions = $this->spGetPermissions( $args[2] );
+			$devOptions = $this->spGetAdminOptions();
 
 			if ( count( $groupPermissions ) > 0 ) {
 				foreach ( $groupPermissions as $perm ) {
-					if ( in_array( $args[1], $devOptions['groups'][$perm['id']]['members'] ) ) {
+					if ( in_array( $perm['id'], array( 0, 1 ) ) || in_array( $args[1], $devOptions['groups'][$perm['id']]['members'] ) ) {
 						if ( preg_match( '/^read_/', $args[0] ) ) {
 							//if just reading, as long as a perm is there, it's okay
-							$allcaps[$cap[0]] = true;
+							foreach ( $cap as $thiscap ) {
+								if ( preg_match( '/^read_/', $thiscap ) ) {
+									$allcaps[$thiscap] = true;
+								}
+							}
 							return $allcaps;
 						} else {
 							if ( $perm['permission'] == 'write' ) {
 								//has to be there and be 'write'
-								$allcaps[$cap[0]] = true;
+								foreach ( $cap as $thiscap ) {
+									$allcaps[$thiscap] = true;
+								}
 								return $allcaps;
 							}
 						}
@@ -217,10 +217,11 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 			} else {
 				//no group permissions, so it must be public from this end, let wordpress handle it
 				//this really shouldn't happen as spGetPermissions should return "public" at least
-				$allcaps[$cap[0]] = true;
+				foreach ( $cap as $thiscap ) {
+					$allcaps[$thiscap] = true;
+				}
 				return $allcaps;
 			}
-			//echo "<!-- through groupPermissions in spUserCanDo -->\r";
 			return $allcaps;
 		}
 
@@ -232,12 +233,9 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 			if ( $wp_query->is_404 == true ) {
 				$is404Check = true;
 				$devOptions = $this->spGetAdminOptions();
-				//echo "<!-- requesturi: http" . ( isset($_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] != 'off' ? "s" : "" ) . "://" . $_SERVER["SERVER_NAME"] . $_SERVER['REQUEST_URI'] . "-->\r";
 				$postid = url_to_postid( "http" . ( isset($_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] != 'off' ? "s" : "" ) . "://" . $_SERVER["SERVER_NAME"] . $_SERVER['REQUEST_URI'] );
-				//echo "<!-- request postid = $postid -->\r";
 				if ( $postid != 0 ) {
 					$redirecturl = get_permalink( $devOptions['redirectPageID'] );
-					//echo "<!-- redirecturl = $redirecturl -->\r";
 					if ( $redirecturl !== false ) {
 						$is404Check = false;
 						wp_redirect( $redirecturl, 301 );
@@ -254,12 +252,10 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 			if ( ! $is404Check ) {
 				$newjoin = " LEFT JOIN sp_metaTableName AS sp_mt1 ON (sp_postTableName.ID = sp_mt1.post_id AND sp_mt1.meta_key = 'simplePermissions_readGroupIDs') ";
 				$newjoin .= " LEFT JOIN sp_metaTableName AS sp_mt2 ON (sp_postTableName.ID = sp_mt2.post_id AND sp_mt2.meta_key = 'simplePermissions_writeGroupIDs')";
-				//echo "<br>newjoin: $newjoin<br>\r";
 				$join .= $newjoin;
 				$join = str_replace( 'sp_metaTableName', $wpdb->postmeta, $join );
 				$join = str_replace( 'sp_postTableName', $wpdb->posts, $join );
 			}
-			//echo "<br>Join: $join<br>\r";
 			return $join;
 		}
 
@@ -280,7 +276,6 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 					$groupMemberships[] = 0; //Public group
 					$groupMemberships[] = 1; //Logged in users group
 				} else {
-					$userID = 0;
 					$groupMemberships[] = 0; //Public group
 				}
 
@@ -294,7 +289,6 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 				$newwhere .= " ) ";
 				$where .= $newwhere;
 			}
-			//echo "<br>Where: $where<br>\r";
 			return $where;
 		}
 
@@ -420,7 +414,6 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 							echo "All logged in users</td><td style='padding: 3px;'></td><td style='padding: 3px;'></td></tr>\r";
 						} else {
 							$memberCount = count( $group['members'] );
-							//echo "<!-- members: $memberCount -->";
 							if ( $memberCount > 3 ) {
 								for ( $i = 0; $i < 3; $i++ ) {
 									$wpUserData = get_userdata( $group['members'][$i] );
@@ -552,7 +545,6 @@ function spDelArgFromURL ( $url, $in_arg ) {
 
 		foreach ( explode( "&", substr( $url, $pos + 1 ) ) as $q ) {
 			list( $key, $val ) = explode( "=", $q );
-			//echo "<!-- key: $key value: $val -->\r";
 			if ( $key != $arg ) {
 				// keep track of the parts that don't have arg3 as the key
 				$query_string_parts[] = "$key=$val";
@@ -566,7 +558,6 @@ function spDelArgFromURL ( $url, $in_arg ) {
 	if ( strrpos( $url, "?" ) == strlen( $url ) - 1 ) {
 		$url = strstr( $url, '?', true );
 	}
-	//echo "<!-- result from spDelArgFromURL: $url -->\r";
 	return $url;
 }
 
@@ -584,8 +575,6 @@ function spAddMetaBox() {
 function spRenderMetaBox( $post ) {
 	global $svvsd_simplePermissions;
 	$permissions = $svvsd_simplePermissions->spGetPermissions( $post->ID );
-	//print_r( $permissions );
-	//echo "<br><br>";
 	$devOptions = $svvsd_simplePermissions->spGetAdminOptions();
 	usort( $devOptions['groups'], "spCompareByName" );
 	usort( $permissions, "spCompareByName" );
@@ -598,6 +587,11 @@ function spRenderMetaBox( $post ) {
 				var readCheckbox = document.getElementById( readCheckboxID );
 				if ( readCheckbox.checked === false ) {
 					readCheckbox.checked = true;
+				}
+				var grpNum = cb.name.split("_")[2];
+				if ( grpNum == 0 || grpNum == 1 ) {
+					var readWarning = document.getElementById( "sp_readabilityWarning" );
+					readWarning.style.display = 'block';
 				}
 		} else if ( ! cb.checked && cb.name.indexOf("read") != -1 ) {
 			var writeCheckboxID = cb.name.replace( "read", "write" );
@@ -642,9 +636,11 @@ function spRenderMetaBox( $post ) {
 			echo "\t\t<tr><td style='padding: 3px; max-width: 200px; word-break: break-all;'>" . $group['name'] . "</td><td><input type='checkbox' name='simplePermissions_grp_" . $group['id'] . "_read' id='simplePermissions_grp_" . $group['id'] . "_read' onclick='sp_handleCheckboxClick(this);'" . ( $permission == 'read' || $permission == 'write' ? " checked" : "" ) . " style='margin-left: 15px;'></td>";
 			echo "<td><input type='checkbox' name='simplePermissions_grp_" . $group['id'] . "_write' id='simplePermissions_grp_" . $group['id'] . "_write' onclick='sp_handleCheckboxClick(this);' " . ( $permission == 'write' ? " checked" : "" ) . " style='margin-left: 15px;'></td></tr>\r";
 		} else if ( $group['id'] == 1 ) {
-			$loggedIn = "\t\t<tr><td style='padding: 3px; max-width: 200px; word-break: break-all;'>" . $group['name'] . "</td><td><input type='checkbox' name='simplePermissions_grp_" . $group['id'] . "_read' id='simplePermissions_grp_" . $group['id'] . "_read' onclick='sp_handleCheckboxClick(this);'" . ( $permission == 'read' ? " checked" : "" ) . " style='margin-left: 15px;'></td><td></td></tr>\r";
+			$loggedIn = "\t\t<tr><td style='padding: 3px; max-width: 200px; word-break: break-all;'>" . $group['name'] . "</td><td><input type='checkbox' name='simplePermissions_grp_" . $group['id'] . "_read' id='simplePermissions_grp_" . $group['id'] . "_read' onclick='sp_handleCheckboxClick(this);'" . ( $permission == 'read' || $permission == 'write' ? " checked" : "" ) . " style='margin-left: 15px;'></td>\r";
+			$loggedIn .= "<td><input type='checkbox' name='simplePermissions_grp_" . $group['id'] . "_write' id='simplePermissions_grp_" . $group['id'] . "_write' onclick='sp_handleCheckboxClick(this);' " . ( $permission == 'write' ? " checked" : "" ) . " style='margin-left: 15px;'></td></tr>\r";
 		} else if ( $group['id'] == 0 ) {
-			$public = "\t\t<tr><td style='padding: 3px; max-width: 200px; word-break: break-all;'>" . $group['name'] . "</td><td><input type='checkbox' name='simplePermissions_grp_" . $group['id'] . "_read' id='simplePermissions_grp_" . $group['id'] . "_read' onclick='sp_handleCheckboxClick(this);'" . ( $permission == 'read' ? " checked" : "" ) . " style='margin-left: 15px;'></td><td></td></tr>\r";
+			$public = "\t\t<tr><td style='padding: 3px; max-width: 200px; word-break: break-all;'>" . $group['name'] . "</td><td><input type='checkbox' name='simplePermissions_grp_" . $group['id'] . "_read' id='simplePermissions_grp_" . $group['id'] . "_read' onclick='sp_handleCheckboxClick(this);'" . ( $permission == 'read' || $permission == 'write' ? " checked" : "" ) . " style='margin-left: 15px;'></td>\r";
+			$public .= "<td><input type='checkbox' name='simplePermissions_grp_" . $group['id'] . "_write' id='simplePermissions_grp_" . $group['id'] . "_write' onclick='sp_handleCheckboxClick(this);' " . ( $permission == 'write' ? " checked" : "" ) . " style='margin-left: 15px;'></td></tr>\r";
 		}
 	}
 	echo $loggedIn;

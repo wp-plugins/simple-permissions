@@ -4,7 +4,7 @@ Donate link:
 Tags: 
 Requires at least: 3.5.2
 Tested up to: 3.8.3
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,9 @@ There are exceptions, of course. If a user is a member of a group that has the w
 
 == Changelog ==
 
+= 1.0.2 =
+* Fixed big bug that prevented editing of posts that had no permissions set.
+
 = 1.0.1 =
 * Fixed issue with some extra whitespace killing feeds
 
@@ -42,3 +45,5 @@ There are exceptions, of course. If a user is a member of a group that has the w
 
 == Upgrade Notice ==
 
+= 1.0.2 =
+* Everyone should update.
