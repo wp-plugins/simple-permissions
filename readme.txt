@@ -4,7 +4,7 @@ Donate link:
 Tags: 
 Requires at least: 3.5.2
 Tested up to: 3.9.1
-Stable tag: 1.0.2
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,12 @@ There are exceptions, of course. If a user is a member of a group that has the w
 
 == Changelog ==
 
+= 1.1.0 =
+* Added option to limit changing permissions to certain WP roles.
+* Added ability to prevent posting in categories by SP group.
+* Changed the regular express used to find usernames when added users to a group. This will allow spaces in usernames, though WP may have to be changed to allow it.
+* above changes per http://wordpress.org/support/topic/couple-issues-3
+
 = 1.0.2 =
 * Fixed big bug that prevented editing of posts that had no permissions set.
 
@@ -44,6 +50,9 @@ There are exceptions, of course. If a user is a member of a group that has the w
 * Initial version.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+* New features and options based on feedback. Upgrade optional.
 
 = 1.0.2 =
 * Everyone should update.

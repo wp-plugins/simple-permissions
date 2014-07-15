@@ -1,14 +1,14 @@
 <?php
 /**
  * @package Simple-Permissions
- * @version 1.0.2
+ * @version 1.1.0
  */
 /*
 Plugin Name: Simple Permissions
 Plugin URI: http://wordpress.org/plugins/simple-permissions/
 Description: Create simple permission groups for reading or editing posts.
 Author: Michael George
-Version: 1.0.2
+Version: 1.1.0
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -43,10 +43,11 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 		function spGetAdminOptions() {
 			$simplePermissionsAdminOptions = array(
 								"groups" => array(
-												array( "id" => 0, "name" => "Public", "enabled" => true, "members" => array() )
-												,array( "id" => 1, "name" => "Logged In Users", "enabled" => true, "members" => array() )
+												array( "id" => 0, "name" => "Public", "enabled" => true, "members" => array(), "limitCats" => array() )
+												,array( "id" => 1, "name" => "Logged In Users", "enabled" => true, "members" => array(), "limitCats" => array() )
 												)
 								,"redirectPageID" => ""
+								,"allowedRole" => "contributor" //as of 1.1.0
 								);
 			$devOptions = get_option( $this->adminOptionsName );
 			if ( ! empty( $devOptions ) ) {
@@ -68,10 +69,11 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 			global $wpdb;
 			$simplePermissionsAdminOptions = array(
 								"groups" => array(
-												array( "id" => 0, "name" => "Public", "enabled" => true, "members" => array() )
-												,array( "id" => 1, "name" => "Logged In Users", "enabled" => true, "members" => array() )
+												array( "id" => 0, "name" => "Public", "enabled" => true, "members" => array(), "limitCats" => array() )
+												,array( "id" => 1, "name" => "Logged In Users", "enabled" => true, "members" => array(), "limitCats" => array() )
 												)
 								,"redirectPageID" => ""
+								,"allowedRole" => "contributor"
 								);
 			update_option( $this->adminOptionsName, $simplePermissionsAdminOptions );
 			$sql = "DELETE FROM " . $wpdb->postmeta . " WHERE meta_key IN ('simplePermissions_readGroupIDs', 'simplePermissions_writeGroupIDs')";
@@ -297,6 +299,68 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 			return "DISTINCT";
 		}
 
+		//Nabbed from http://wordpress.stackexchange.com/questions/41548/get-categories-hierarchical-order-like-wp-list-categories-with-name-slug-li
+		//as of 1.1.0
+		function spHierarchicalCategoryTree( $cat, $group, $depth = 0 ) {
+			$devOptions = $this->spGetAdminOptions();
+			//echo "<!-- $cat, $depth -->\r";
+			$next = get_categories( 'hide_empty=0&orderby=name&order=ASC&parent=' . $cat );
+			if( $next ) {
+				for ( $i = 0; $i < $depth; $i++ ) {
+					echo "\t";
+				}
+				echo "<ul>\r";
+				foreach( $next as $cat ) {
+					$inArr = in_array( $cat->term_id, $group['limitCats'] );
+					for ( $i = 0; $i <= $depth; $i++ ) {
+						echo "\t";
+					}
+					echo "<li><input type='checkbox' name='simplePermissionsLimitCats[]' value='" . $cat->term_id . "'" . ( $inArr ? " checked" : "" ) . " /><strong>";
+					for ( $i = 0; $i < $depth; $i++ ) {
+						echo "-&nbsp;";
+					}
+					echo $cat->name . "</strong>";
+					$this->spHierarchicalCategoryTree( $cat->term_id, $group, $depth + 1 );
+					for ( $i = 0; $i <= $depth; $i++ ) {
+						echo "\t";
+					}
+					echo "</li>\r";
+				}
+				for ( $i = 0; $i < $depth; $i++ ) {
+					echo "\t";
+				}
+				echo "</ul>\r";
+			}
+		}
+
+		//Exclude categories from edit page
+		//as of 1.1.0
+		function spExcludeCategories( $exclusions, $args ) {
+			//see if we are on edit screen, if so, bail out
+			global $pagenow;
+			if ( $pagenow != 'post.php' ) {
+				return $exclusions;
+			}
+			$devOptions = $this->spGetAdminOptions();
+			$user = wp_get_current_user();
+
+			$excludedCats = array();
+			foreach ( $devOptions['groups'] as $group ) {
+				if ( in_array( $user->ID, $group['members'] ) ) {
+					foreach ( $group['limitCats'] as $cat ) {
+						$excludedCats[] = $cat;
+					}
+				}
+			}
+			// if the exclude list is empty, we send everything back the way it came in
+			if ( empty( $excludedCats ) ) {
+				return $exclusions;
+			}
+
+			$exclusions .= " AND ( t.term_id NOT IN (" . implode( ",", $excludedCats ) . ") )";
+			return $exclusions;
+		}
+
 		//Gets the settings link to show on the plugin management page
 		//Thanks to "Floating Social Bar" plugin as the code is humbly taken from it
 		function spSettingsLink( $links ) {
@@ -310,12 +374,13 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 		function spPrintAdminPage() {
 			$devOptions = $this->spGetAdminOptions();
 			$workingURL = $_SERVER["REQUEST_URI"];
+			echo "<!-- " . print_r( $_POST, true ) . " -->\r";
 
 			if ( isset( $_POST['update_simplePermissionsGroupSettings'] ) ) {
 				if ( isset( $_POST['simplePermissionsGroupID'] )
 						&& ! isset( $devOptions['groups'][(int)$_POST['simplePermissionsGroupID']] )
 					) {
-						$devOptions['groups'][(int)$_POST['simplePermissionsGroupID']] = array( "id" => (int)$_POST['simplePermissionsGroupID'], "name" => "", "enabled" => true, "members" => array() );
+						$devOptions['groups'][(int)$_POST['simplePermissionsGroupID']] = array( "id" => (int)$_POST['simplePermissionsGroupID'], "name" => "", "enabled" => true, "members" => array(), "limitCats" => array() );
 				}
 				if ( isset( $_POST['simplePermissionsGroupID'] )
 						&& isset( $devOptions['groups'][(int)$_POST['simplePermissionsGroupID']] )
@@ -333,7 +398,9 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 
 				if ( isset( $_POST['simplePermissionsGroupMembers'] ) ) {
 					$devOptions['groups'][(int)$_POST['simplePermissionsGroupID']]['members'] = array();
-					$members = preg_split( '/[\s,]+/', $_POST['simplePermissionsGroupMembers'] ); //explode didn't work so good
+					//Changed regex on following from /[\s,]+/ to /[\n\r\f]+/ to allow spaces to be used in usernames
+					//as of 1.1.0
+					$members = preg_split( '/[\n\r\f]+/', $_POST['simplePermissionsGroupMembers'] );
 					foreach ( $members as $member ) {
 						$wpUserData = get_user_by( 'login', $member );
 						if ( ! $wpUserData === false ) {
@@ -345,6 +412,17 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 					unset( $_GET['spEditGroup'] );
 				}
 
+				if ( isset( $_POST['simplePermissionsLimitCats'] ) ) {
+					foreach ( $_POST['simplePermissionsLimitCats'] as $cat ) {
+						echo "<!-- found cat $cat -->\r";
+						if ( ! in_array( $cat, $devOptions['groups'][(int)$_POST['simplePermissionsGroupID']]['limitCats'] ) ) {
+							$devOptions['groups'][(int)$_POST['simplePermissionsGroupID']]['limitCats'][] = (int)$cat;
+						}
+					}
+				} else if ( isset( $_POST['simplePermissionsGroupID'] ) && $_POST['simplePermissionsGroupID'] != 'new' ) {
+					$devOptions['groups'][(int)$_POST['simplePermissionsGroupID']]['limitCats'] = array();
+				}
+
 				if ( isset( $_POST['spDeleteGroupConfirmed'] ) ) {
 					$devOptions['groups'][(int)$_POST['spDeleteGroupConfirmed']]['enabled'] = false;
 					unset( $_GET['spDeleteGroup'] );
@@ -353,7 +431,11 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 				if ( isset( $_POST['simplePermissionsRedirectPageID'] ) ) {
 					$devOptions['redirectPageID'] = $_POST['simplePermissionsRedirectPageID'];
 				}
-				$updated = update_option($this->adminOptionsName, $devOptions);
+
+				if ( isset( $_POST['simplePermissionsAllowedRole'] ) ) {
+					$devOptions['allowedRole'] = $_POST['simplePermissionsAllowedRole'];
+				}
+				$updated = update_option( $this->adminOptionsName, $devOptions );
 			} else if ( isset( $_GET['spDeleteItAll'] ) && $_GET['spDeleteItAll'] == 1 ) {
 				$updated = $this->spDeleteItAll();
 			}
@@ -365,7 +447,7 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 				$devOptions = $this->spGetAdminOptions();
 			} else if ( isset( $updated ) && $updated === false && isset( $_GET['spDeleteItAll'] ) && $_GET['spDeleteItAll'] == 1 ) {
 				global $wpdb;
-				echo "<div class='updated'><p><strong>Settings where delete, but post permissions were NOT reset.</strong></p><p>You can try again or run this sql manually.</p><pre>DELETE FROM " . $wpdb->postmeta . " WHERE meta_key IN ('simplePermissions_readGroupIDs', 'simplePermissions_writeGroupIDs')</pre></div>\r";
+				echo "<div class='updated'><p><strong>Settings where deleted, but post permissions were NOT reset.</strong></p><p>You can try again or run this sql manually.</p><pre>DELETE FROM " . $wpdb->postmeta . " WHERE meta_key IN ('simplePermissions_readGroupIDs', 'simplePermissions_writeGroupIDs')</pre></div>\r";
 				$workingURL = spDelArgFromURL( $_SERVER["REQUEST_URI"], array( 'spDeleteItAll' ) );
 				unset( $_GET['spDeleteItAll'] );
 				$devOptions = $this->spGetAdminOptions();
@@ -450,6 +532,15 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 				echo "<h2>Redirect page</h2>\r";
 				echo "<p>This is the page/post ID of the page/post users will be redirected to when they don't have permission to view a page.</p>\r";
 				echo "<input id='simplePermissionsRedirectPageID' type='text' name='simplePermissionsRedirectPageID' value='" . $devOptions['redirectPageID'] . "' style='width: 100px;'>\r";
+				echo "<br>\r";
+				echo "<h2>Limit permission changes</h2>\r";
+				echo "<p>By default, anyone who can edit a post can change the permissions. Choose another role here to limit changes to users who have that role or higher.</p>\r";
+				echo "<select id='simplePermissionsAllowedRole' name='simplePermissionsAllowedRole'>\r";
+				echo "\t<option value='administrator'" . ( $devOptions['allowedRole'] == 'administrator' ? " selected" : "" ) . ">Administrators</option>\r";
+				echo "\t<option value='editor'" . ( $devOptions['allowedRole'] == 'editor' ? " selected" : "" ) . ">Editors</option>\r";
+				echo "\t<option value='author'" . ( $devOptions['allowedRole'] == 'author' ? " selected" : "" ) . ">Authors</option>\r";
+				echo "\t<option value='contributor'" . ( $devOptions['allowedRole'] == 'contributor' ? " selected" : "" ) . ">Contributors</option>\r";
+				echo "</select>\r";
 				echo "<br><br>\r";
 				echo "<input type='submit' value='Save'>\r";
 				echo "<br><br>\r";
@@ -482,6 +573,13 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 				}
 				echo "</textarea>\r";
 				echo "<br><br>\r";
+
+				//Category limiting
+				//as of 1.1.0
+				echo "<h2>Prevent posting in these categories</h2>\r";
+				$this->spHierarchicalCategoryTree( 0, $devOptions['groups'][$_GET['spEditGroup']], 0 );
+				echo "<br><br>\r";
+
 				echo "<input type='submit' value='Save'>\r";
 			} else if ( isset( $_GET['spDeleteGroup'] ) ) {
 				echo "<h2>Confirm Group Delete</h2>\r";
@@ -562,14 +660,38 @@ function spDelArgFromURL ( $url, $in_arg ) {
 }
 
 function spAddMetaBox() {
-	add_meta_box(
- 			'simplepermissions_meta_box'
-			,__( 'Simple Permissions' )
-			,'spRenderMetaBox'
-			,get_post_type( get_the_ID() )
-			,'normal'
-			,'high'
-		);
+	global $svvsd_simplePermissions;
+	$devOptions = $svvsd_simplePermissions->spGetAdminOptions();
+	if ( ! isset( $devOptions['allowedRole'] ) ) {
+		return;
+	}
+	$user = wp_get_current_user();
+	if ( current_user_can( 'activate_plugins' ) ) {
+		$user->roles[] = 'administrator';
+	}
+	if ( count( $user->roles ) == 1 ) {
+		switch ( $user->roles[0] ) {
+			case 'administrator':
+			case 'editor':
+				$user->roles[] = 'editor';
+			case 'author':
+				$user->roles[] = 'author';
+			case 'contributor':
+				$user->roles[] = 'contributor';
+				break;
+		}
+	}
+	//echo "<!-- " . print_r( $user->roles, true ) . " -->\r";
+	if ( in_array( $devOptions['allowedRole'], (array) $user->roles ) ) {
+		add_meta_box(
+				'simplepermissions_meta_box'
+				,__( 'Simple Permissions' )
+				,'spRenderMetaBox'
+				,get_post_type( get_the_ID() )
+				,'normal'
+				,'high'
+			);
+	}
 }
 
 function spRenderMetaBox( $post ) {
@@ -667,6 +789,7 @@ if ( isset( $svvsd_simplePermissions ) ) {
 	add_filter( 'posts_where', array( &$svvsd_simplePermissions, 'spCustomWhere' ) );
 	add_filter( 'posts_distinct', array ( &$svvsd_simplePermissions, 'spSearchDistinct' ) );
 	add_filter( 'template_redirect', array ( &$svvsd_simplePermissions, 'spOverride404' ) );
+	add_filter( 'list_terms_exclusions', array ( &$svvsd_simplePermissions, 'spExcludeCategories' ), 10, 2 );
 
 	//Actions
 	add_action( 'admin_menu', 'spAddOptionPage' );
