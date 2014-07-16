@@ -677,7 +677,7 @@ function spAddMetaBox() {
 		} else if ( in_array( 'author', $user->roles ) ) {
 			if ( ! in_array( 'contributor', $user->roles ) ) $user->roles[] = 'contributor';
 		}
-		echo "<!-- " . print_r( $user->roles, true ) . " -->\r";
+		//echo "<!-- " . print_r( $user->roles, true ) . " -->\r";
 		if ( in_array( $devOptions['allowedRole'], (array) $user->roles ) ) {
 			$add = true;
 		} else {
@@ -687,7 +687,7 @@ function spAddMetaBox() {
 		$add = true;
 	}
 	if ( $add ) {
-		echo "<!-- adding meta box -->\r";
+		//echo "<!-- adding meta box -->\r";
 		add_meta_box(
 				'simplepermissions_meta_box'
 				,__( 'Simple Permissions' )
@@ -697,7 +697,7 @@ function spAddMetaBox() {
 				,'high'
 			);
 	} else {
-		echo "<!-- not adding meta box -->\r";
+		//echo "<!-- not adding meta box -->\r";
 	}
 }
 
