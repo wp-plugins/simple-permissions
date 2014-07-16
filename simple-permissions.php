@@ -1,14 +1,14 @@
 <?php
 /**
  * @package Simple-Permissions
- * @version 1.1.0
+ * @version 1.1.1
  */
 /*
 Plugin Name: Simple Permissions
 Plugin URI: http://wordpress.org/plugins/simple-permissions/
 Description: Create simple permission groups for reading or editing posts.
 Author: Michael George
-Version: 1.1.0
+Version: 1.1.1
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -662,27 +662,32 @@ function spDelArgFromURL ( $url, $in_arg ) {
 function spAddMetaBox() {
 	global $svvsd_simplePermissions;
 	$devOptions = $svvsd_simplePermissions->spGetAdminOptions();
-	if ( ! isset( $devOptions['allowedRole'] ) ) {
-		return;
-	}
-	$user = wp_get_current_user();
-	if ( current_user_can( 'activate_plugins' ) ) {
-		$user->roles[] = 'administrator';
-	}
-	if ( count( $user->roles ) == 1 ) {
-		switch ( $user->roles[0] ) {
-			case 'administrator':
-			case 'editor':
-				$user->roles[] = 'editor';
-			case 'author':
-				$user->roles[] = 'author';
-			case 'contributor':
-				$user->roles[] = 'contributor';
-				break;
+	if ( isset( $devOptions['allowedRole'] ) ) {
+		$user = wp_get_current_user();
+		if ( current_user_can( 'activate_plugins' ) ) {
+			$user->roles[] = 'administrator';
 		}
+		if ( in_array( 'administrator', $user->roles ) ) {
+			if ( ! in_array( 'editor', $user->roles ) ) $user->roles[] = 'editor';
+			if ( ! in_array( 'author', $user->roles ) ) $user->roles[] = 'author';
+			if ( ! in_array( 'contributor', $user->roles ) ) $user->roles[] = 'contributor';
+		} else if ( in_array( 'editor', $user->roles ) ) {
+			if ( ! in_array( 'author', $user->roles ) ) $user->roles[] = 'author';
+			if ( ! in_array( 'contributor', $user->roles ) ) $user->roles[] = 'contributor';
+		} else if ( in_array( 'author', $user->roles ) ) {
+			if ( ! in_array( 'contributor', $user->roles ) ) $user->roles[] = 'contributor';
+		}
+		echo "<!-- " . print_r( $user->roles, true ) . " -->\r";
+		if ( in_array( $devOptions['allowedRole'], (array) $user->roles ) ) {
+			$add = true;
+		} else {
+			$add = false;
+		}
+	} else {
+		$add = true;
 	}
-	//echo "<!-- " . print_r( $user->roles, true ) . " -->\r";
-	if ( in_array( $devOptions['allowedRole'], (array) $user->roles ) ) {
+	if ( $add ) {
+		echo "<!-- adding meta box -->\r";
 		add_meta_box(
 				'simplepermissions_meta_box'
 				,__( 'Simple Permissions' )
@@ -691,6 +696,8 @@ function spAddMetaBox() {
 				,'normal'
 				,'high'
 			);
+	} else {
+		echo "<!-- not adding meta box -->\r";
 	}
 }
 
