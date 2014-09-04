@@ -186,6 +186,17 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 				return $allcaps;
 			}
 
+			//Commented all this out as it may actually be working as I wanted it to :)
+			/*//Get current user and post information
+			$cur_user = wp_get_current_user();
+			$post = get_post( $id );
+			//echo "<!-- " . print_r( $cur_user, true ) . " -->\r";
+
+			//Bailt out if user is author and post is theirs
+			if ( in_array( 'author', $cur_user->roles ) && $cur_user->ID == $post->post_author ) {
+				return $allcaps;
+			}*/
+			
 			//set the cap to false until we prove it's true
 			foreach ( $cap as $thiscap ) {
 				unset( $allcaps[$thiscap] );
