@@ -4,7 +4,7 @@ Donate link:
 Tags: 
 Requires at least: 3.5.2
 Tested up to: 4.0.0
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,9 @@ There are exceptions, of course. If a user is a member of a group that has the w
 
 == Changelog ==
 
+= 1.1.2 =
+* Fixed a bug that would cause Wiki plugin (and anything else that provides an editing interface) to reset permissions on posts.
+
 = 1.1.1 =
 * Quick bug fix for major oops in last version. The meta box wasn't rendering if a user had a higher role than necessary.
 
@@ -53,6 +56,9 @@ There are exceptions, of course. If a user is a member of a group that has the w
 * Initial version.
 
 == Upgrade Notice ==
+
+= 1.1.2 =
+* Bug fix for interaction with Wiki plugin. Upgrade optional.
 
 = 1.1.1 =
 * Bug fix for 1.1.0, so if you had 1.1.0, you need to upgrade. If on 1.0.2, upgrade is optional.
