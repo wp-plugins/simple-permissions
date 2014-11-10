@@ -155,7 +155,7 @@ if ( ! class_exists( "SimplePermissions" ) ) {
                 }
             }
             if ( count( $returnValue ) < 1 ) {
-                $returnValue[] = array( "id" => 1, "name" => "logged in users", "permission" => "read" );
+                $returnValue[] = array( "id" => 1, "name" => "public", "permission" => "read" );
             }
 
             return $returnValue;
