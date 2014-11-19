@@ -1,14 +1,14 @@
 <?php
 /**
  * @package Simple-Permissions
- * @version 1.1.2
+ * @version 1.1.3
  */
 /*
 Plugin Name: Simple Permissions
 Plugin URI: http://wordpress.org/plugins/simple-permissions/
 Description: Create simple permission groups for reading or editing posts.
 Author: Michael George
-Version: 1.1.2
+Version: 1.1.3
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -421,12 +421,13 @@ if ( ! class_exists( "SimplePermissions" ) ) {
                 }
 
                 if ( isset( $_POST['simplePermissionsLimitCats'] ) ) {
+                    $devOptions['groups'][(int)$_POST['simplePermissionsGroupID']]['limitCats'] = array();
+                    //echo "<!-- postedLimits: " . print_r( $_POST['simplePermissionsLimitCats'], true ) . " -->\r";
                     foreach ( $_POST['simplePermissionsLimitCats'] as $cat ) {
                         //echo "<!-- found cat $cat -->\r";
-                        if ( ! in_array( $cat, $devOptions['groups'][(int)$_POST['simplePermissionsGroupID']]['limitCats'] ) ) {
-                            $devOptions['groups'][(int)$_POST['simplePermissionsGroupID']]['limitCats'][] = (int)$cat;
-                        }
+                        $devOptions['groups'][(int)$_POST['simplePermissionsGroupID']]['limitCats'][] = (int)$cat;
                     }
+                    //echo "<!-- limits: " . print_r( $devOptions['groups'][(int)$_POST['simplePermissionsGroupID']]['limitCats'], true ) . " -->\r";
                 } else if ( isset( $_POST['simplePermissionsGroupID'] ) && $_POST['simplePermissionsGroupID'] != 'new' ) {
                     $devOptions['groups'][(int)$_POST['simplePermissionsGroupID']]['limitCats'] = array();
                 }
@@ -463,7 +464,7 @@ if ( ! class_exists( "SimplePermissions" ) ) {
                 echo "<div class='updated'><p><strong>Settings Updated.</strong></p></div>\r";
                 $workingURL = spDelArgFromURL( $_SERVER["REQUEST_URI"], array( 'spDeleteGroup', 'spEditGroup' ) );
             } else if ( isset( $updated ) && ! $updated ) {
-                echo "<div class='updated'><p><strong>Settings failed to update.</strong></p></div>\r";
+                echo "<div class='error'><p><strong>Settings failed to update.</strong></p></div>\r";
             }
 ?>
 <div id="simple-permissions_option_page" style="width:80%">
