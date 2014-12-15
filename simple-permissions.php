@@ -1,14 +1,14 @@
 <?php
 /**
  * @package Simple-Permissions
- * @version 1.1.3
+ * @version 1.1.4
  */
 /*
 Plugin Name: Simple Permissions
 Plugin URI: http://wordpress.org/plugins/simple-permissions/
 Description: Create simple permission groups for reading or editing posts.
 Author: Michael George
-Version: 1.1.3
+Version: 1.1.4
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -199,6 +199,11 @@ if ( ! class_exists( "SimplePermissions" ) ) {
             }
 
             $groupPermissions = $this->spGetPermissions( $args[2] );
+            //Since 1.1.4. Check to see if the only permission is public or logged in users read. If so, make it writeable.
+            //This is necessary to allow drafts to be autosaved.
+            if ( count( $groupPermissions ) == 1 && in_array( $groupPermissions[0]['id'], array( 0, 1 ) ) ) {
+                $groupPermissions[0]['permission'] = "write";
+            }
             $devOptions = $this->spGetAdminOptions();
 
             if ( count( $groupPermissions ) > 0 ) {

@@ -4,7 +4,7 @@ Donate link:
 Tags: 
 Requires at least: 3.5.2
 Tested up to: 4.0.0
-Stable tag: 1.1.3
+Stable tag: 1.1.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,9 @@ There are exceptions, of course. If a user is a member of a group that has the w
 
 == Changelog ==
 
+= 1.1.4 =
+* Bug fix that was preventing drafts from autosaving.
+
 = 1.1.3 =
 * Removing category limits was not working under all conditions. Should be fixed now.
 
@@ -59,6 +62,9 @@ There are exceptions, of course. If a user is a member of a group that has the w
 * Initial version.
 
 == Upgrade Notice ==
+
+= 1.1.4 =
+* Minor bug fix. Upgrade if you were having trouble auto saving drafts.
 
 = 1.1.3 =
 * Everyone should update as some functionality wasn't working.
