@@ -179,17 +179,20 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 
             //if we are not checking for a specific post, do nothing
             if ( ! isset( $args[2] ) || ! is_numeric( $args[2] ) ) {
+                error_log( "here" );
                 return $allcaps;
             }
 
             //Bail out if operation isn't protected
             if ( ! in_array( $args[0], $protectedOperations ) ) {
+                error_log( "here2" );
                 return $allcaps;
             }
 
             //Bail out if user can activate plugins, which is only
             //available to admins and super admins
             if ( $allcaps['activate_plugins'] ) {
+                error_log( "here3" );
                 return $allcaps;
             }
 
