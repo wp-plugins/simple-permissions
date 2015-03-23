@@ -1,14 +1,14 @@
 <?php
 /**
  * @package Simple-Permissions
- * @version 1.1.4
+ * @version 1.2.0
  */
 /*
 Plugin Name: Simple Permissions
 Plugin URI: http://wordpress.org/plugins/simple-permissions/
 Description: Create simple permission groups for reading or editing posts.
 Author: Michael George
-Version: 1.1.4
+Version: 1.2.0
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -168,6 +168,7 @@ if ( ! class_exists( "SimplePermissions" ) ) {
         //                        [1] User ID
         //                        [2] Associated object ID
         function spUserCanDo( $allcaps, $cap, $args ) {
+            //error_log( "userCanDo cap: " . print_r( $cap, true ) . " args: " . print_r( $args, true ) );
             $protectedOperations = array(
                                         'delete_page'
                                         ,'delete_post'
@@ -179,20 +180,17 @@ if ( ! class_exists( "SimplePermissions" ) ) {
 
             //if we are not checking for a specific post, do nothing
             if ( ! isset( $args[2] ) || ! is_numeric( $args[2] ) ) {
-                error_log( "here" );
                 return $allcaps;
             }
 
             //Bail out if operation isn't protected
             if ( ! in_array( $args[0], $protectedOperations ) ) {
-                error_log( "here2" );
                 return $allcaps;
             }
 
             //Bail out if user can activate plugins, which is only
             //available to admins and super admins
             if ( $allcaps['activate_plugins'] ) {
-                error_log( "here3" );
                 return $allcaps;
             }
 
@@ -242,6 +240,12 @@ if ( ! class_exists( "SimplePermissions" ) ) {
             return $allcaps;
         }
 
+        //Since 1.2.0
+        //Re-wrote this function as I was seeing wonky things with browswers not actually giving up cached
+        //versions of the redirect page. When someone would hit a protected page, they could then login, but
+        //the browser would navigate back to the protected warning because that's what it did last time, so
+        //why would it be different this time?
+        //My solution is to override the content of the post with the content of the protection page.
         function spOverride404() {
             global $wp_query;
             global $post;
@@ -252,14 +256,54 @@ if ( ! class_exists( "SimplePermissions" ) ) {
                 $devOptions = $this->spGetAdminOptions();
                 $postid = url_to_postid( "http" . ( isset($_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] != 'off' ? "s" : "" ) . "://" . $_SERVER["SERVER_NAME"] . $_SERVER['REQUEST_URI'] );
                 if ( $postid != 0 ) {
-                    $redirecturl = get_permalink( $devOptions['redirectPageID'] );
-                    if ( $redirecturl !== false ) {
-                        $is404Check = false;
-                        wp_redirect( $redirecturl, 301 );
-                        exit;
+                    $is404Check = false;
+                    $redirectID = $devOptions['redirectPageID'];
+                    //error_log( "redirectID: $redirectID" );
+                    if ( ! empty( $redirectID ) && is_numeric( $redirectID ) ) {
+                        $redirectPost = get_post( $redirectID );
+                        $wp_query->is_404 = false;
+                        $wp_query->is_single = true;
+                        $wp_query->found_posts = 1;
+                        $redirectPost = get_post( $devOptions['redirectPageID'] );
+                        $post->post_content_filtered = apply_filters( 'the_content', $redirectPost->post_content );
+                        $post = get_post( $postid );
+                        $post->post_content = $redirectPost->post_content;
+                        $post->comment_status = 'closed';
+                        $post->comment_count = 0;
+                        $post->ID = $devOptions['redirectPageID'];
+                        $wp_query->posts[] = $post;
+                        $wp_query->post = $post;
+                        $wp_query->in_the_loop = true;
+                        $wp_query->current_post = -1;
+                        $wp_query->comment_count = 0;
+                        $wp_query->post_count = 1;
+                    } else {
+                        //error_log( "empty: " . print_r( ! empty( $redirectID ), true ) . " - numeric: " . print_r( is_numeric( $redirectID ), true ) );
+                        //If no page id is specified in the SP settings, then let the standard 404 action happen
+                        //This may be affected by themes or other plugins
                     }
                 }
             }
+        }
+
+        function spCustom404( $standard_404 ) {
+            global $wp_query;
+            global $post;
+            global $is404Check;
+
+            if ( $wp_query->is_404 == true ) {
+                $is404Check = true;
+                $devOptions = $this->spGetAdminOptions();
+                $postid = url_to_postid( "http" . ( isset($_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] != 'off' ? "s" : "" ) . "://" . $_SERVER["SERVER_NAME"] . $_SERVER['REQUEST_URI'] );
+                if ( $postid != 0 ) {
+                    $redirectPost = get_post( $devOptions['redirectPageID'] );
+                    $post->post_content = apply_filters( 'the_content', $redirectPost->post_content );
+                    error_log( "post2: " . print_r( $post, true ) );
+                    return ( "echo \"" . $post->post_content . "\";" );
+                }
+            }
+
+            return $standard_404;
         }
 
         function spCustomJoin( $join ) {
