@@ -1,14 +1,14 @@
 <?php
 /**
  * @package Simple-Permissions
- * @version 1.2.0
+ * @version 1.2.1
  */
 /*
 Plugin Name: Simple Permissions
 Plugin URI: http://wordpress.org/plugins/simple-permissions/
 Description: Create simple permission groups for reading or editing posts.
 Author: Michael George
-Version: 1.2.0
+Version: 1.2.1
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -191,6 +191,13 @@ if ( ! class_exists( "SimplePermissions" ) ) {
             //Bail out if user can activate plugins, which is only
             //available to admins and super admins
             if ( $allcaps['activate_plugins'] ) {
+                return $allcaps;
+            }
+
+            // Load the post data:
+            $post = get_post( $args[2] );
+            // Bail out if the user is the post author:
+            if ( $args[1] == $post->post_author ) {
                 return $allcaps;
             }
 

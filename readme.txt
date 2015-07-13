@@ -3,8 +3,8 @@ Contributors: george_michael
 Donate link: 
 Tags: 
 Requires at least: 3.5.2
-Tested up to: 4.2.1
-Stable tag: 1.2.0
+Tested up to: 4.2.2
+Stable tag: 1.2.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,9 @@ There are exceptions, of course. If a user is a member of a group that has the w
 3. The permissions settings meta box when editing a post.
 
 == Changelog ==
+
+= 1.2.1 =
+* Changed so that an author will always have the ability to edit their own post. If you don't want an author to have access, you should change the ownership of the post.
 
 = 1.2.0 =
 * Fixed (hopefully!) an issue where you would not be redirected to the proper page after login when presented with a protected page notice. I'm getting around this by not redirecting at all. Instead, I'm replacing the requested pages content with the content of the protected page notice.
@@ -65,6 +68,9 @@ There are exceptions, of course. If a user is a member of a group that has the w
 * Initial version.
 
 == Upgrade Notice ==
+
+= 1.2.1 =
+* Changed permission logic. Upgrade suggested.
 
 = 1.2.0 =
 * Pretty significant bug fix. Upgrade suggested.
