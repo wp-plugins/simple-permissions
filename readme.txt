@@ -3,8 +3,8 @@ Contributors: george_michael
 Donate link: 
 Tags: 
 Requires at least: 3.5.2
-Tested up to: 4.2.2
-Stable tag: 1.2.1
+Tested up to: 4.3.0
+Stable tag: 1.2.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,9 @@ There are exceptions, of course. If a user is a member of a group that has the w
 3. The permissions settings meta box when editing a post.
 
 == Changelog ==
+
+= 1.2.2 =
+* Removed PHP4 constructor from class as WP 4.3 deprecated that type of constructor.
 
 = 1.2.1 =
 * Changed so that an author will always have the ability to edit their own post. If you don't want an author to have access, you should change the ownership of the post.
@@ -68,6 +71,9 @@ There are exceptions, of course. If a user is a member of a group that has the w
 * Initial version.
 
 == Upgrade Notice ==
+
+= 1.2.2 =
+* Required upgrade if using WP 4.3.
 
 = 1.2.1 =
 * Changed permission logic. Upgrade suggested.
